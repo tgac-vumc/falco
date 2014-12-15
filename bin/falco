@@ -1,0 +1,69 @@
+#!/usr/bin/perl
+
+use strict;
+use Cwd 'abs_path';
+use Getopt::Long;
+use File::Basename;
+
+my $absPath = abs_path($0);
+my $dn = dirname($absPath);
+
+# Set options
+
+my $bam;
+my $ref = "$dn/../ref/hg19/hg19.fa";
+my $locifilt = "$dn/../ref/filters/filter.tsv";
+my $manifest = "$dn/../ref/TSACP/TruSeq_Amplicon_Cancer_Panel_Manifest_AFP1_PN15032433.txt";
+my $base = $bam;
+
+GetOptions (
+	"bam=s" => \$bam,
+	"ref=s" => \$ref,
+	"filter=s" => \$locifilt,
+	"manifest=s" => \$manifest,
+	"output=s" => \$base,
+	)
+or die("Error in command line arguments\n");
+
+# Set paths to external script 
+# TODO make modules
+
+my $perAmpliconAnalysis = "$dn/../lib/perl/perAmpliconAnalysis.pl";
+my $addQual = "$dn/../lib/R/addQual.R";
+my $func = "$dn/../lib/R/func.R";
+my $qcFilt = "$dn/../lib/perl/qcFilt.pl";
+my $qc2vcf = "$dn/../lib/perl/qc2vcf.pl";
+
+# Check Rscript
+my $rscript = `which Rscript`;
+chomp $rscript;
+if ($rscript !~ /Rscript$/) {
+	print STDERR "No Rscript present in PATH\n";
+	exit 1;
+}
+
+# Check samtools
+my $samtools = `which samtools`;
+chomp $samtools;
+if ($samtools !~ /samtools$/) {
+	print STDERR "No samtools present in PATH\n";
+	exit 1;
+}
+
+# perl perAmpliconAnalysis
+# R addQual.R
+# perl qcFilt
+# perl qc2vcf
+
+print STDERR localtime() . " [$$] $perAmpliconAnalysis $bam $ref $manifest $base $samtools\n";
+system("$perAmpliconAnalysis $bam $ref $manifest $base $samtools");
+
+print STDERR localtime() . " [$$] $rscript $addQual $base.qc.ann.txt $base.qc.ann.qual.txt $func $locifilt\n";
+system("$rscript $addQual $base.qc.ann.txt $base.qc.ann.qual.txt $func $locifilt");
+
+print STDERR localtime() . " [$$] $qcFilt $base.qc.ann.qual.txt $base\n";
+system("$qcFilt $base.qc.ann.qual.txt $base");
+
+print STDERR localtime() . " [$$] $qc2vcf $base.qc.ann.qual.filt.txt > $base.falco.vcf\n";
+system("$qc2vcf $base.qc.ann.qual.filt.txt > $base.falco.vcf");
+
