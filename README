@@ -8,6 +8,7 @@ input:
 - manifest file
 - ref + fai
 - locifilt
+- manifest
 
 output:
 
@@ -18,6 +19,6 @@ output:
 
 example:
 
-falco -i input.bam -m manifest -ref hg.fa -f filter -o outputBase
+falco --bam input.bam --output outputBase --ref [hg19.fa]
 
 
