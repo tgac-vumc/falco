@@ -1,0 +1,23 @@
+Usage:
+
+falco 
+
+input:
+
+- bam file
+- manifest file
+- ref + fai
+- locifilt
+
+output:
+
+- *.vcf file
+- *.qc.ann.txt -> catalog of each assayed bp
+- *.qc2.ann.txt -> catalog of transitions
+- *.qc.targets.txt -> amplicon centered information, eg depth, start/end positions.
+
+example:
+
+falco -i input.bam -m manifest -ref hg.fa -f filter -o outputBase
+
+
