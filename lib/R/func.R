@@ -34,7 +34,7 @@ insPees <- ppois(1:50, mean(rep(dels$ln, dels$occ)), lower.tail=F)
 # Calculate errorrate per amplicon
 amps <- unique(qc$amp)
 for (i in amps) {
-	print(i)
+	#print(i)
 	sel <- qc$amp == i
         prob <- sum(qc$nVar[sel]) / (sum(qc$nRef[sel]) + sum(qc$nVar[sel]))
 	#prob <- median(qc$nVar[sel] / (qc$nRef[sel] + qc$nVar[sel]))
@@ -90,9 +90,9 @@ for (i in amps) {
 		qc$qScoreI[j] <- inss$Q[high]
 		pVal.I[j] <- inss$pVal[high]
 	}
-	print(sum(-10 * log10(pees) > 100))
-	print(sum(qc$qScoreI[selIns] > 100))
-	print(sum(qc$qScoreD[selDels] > 100))
+	#print(sum(-10 * log10(pees) > 100))
+	#print(sum(qc$qScoreI[selIns] > 100))
+	#print(sum(qc$qScoreD[selDels] > 100))
 }
 
 p.adjust(qc$pVal) -> qc$pValAdj
@@ -165,7 +165,7 @@ globalProb <- sum(qc$nVar) / (sum(qc$nRef) + sum(qc$nVar))
 # Calculate errorrate per amplicon
 amps <- unique(qc$amp)
 for (i in amps) {
-	print(i)
+	#print(i)
 	sel <- qc$amp == i
         prob1 <- sum(qc$nVar[sel]) / (sum(qc$nRef[sel]) + sum(qc$nVar[sel])) 
        	prob <- prob1 * calcTransCor(qc[sel,], lociFilt)
@@ -222,9 +222,9 @@ for (i in amps) {
 		qc$qScoreI[j] <- inss$Q[high]
 		pVal.I[j] <- inss$pVal[high]
 }	}
-	print(sum(-10 * log10(pees) > 100))
-	print(sum(qc$qScoreI[selIns] > 100))
-	print(sum(qc$qScoreD[selDels] > 100))
+	#print(sum(-10 * log10(pees) > 100))
+	#print(sum(qc$qScoreI[selIns] > 100))
+	#print(sum(qc$qScoreD[selDels] > 100))
 }
 
 p.adjust(qc$pVal) -> qc$pValAdj
@@ -305,7 +305,7 @@ pCor[grepl("^T", qc$ntVar, ignore.case=T)] <- errACGT[4]
 # Calculate errorrate per amplicon
 amps <- unique(qc$amp)
 for (i in amps) {
-	print(i)
+	#print(i)
 	sel <- qc$amp == i
         prob <- sum(qc$nVar[sel]) / (sum(qc$nRef[sel]) + sum(qc$nVar[sel]))
 	#prob <- median(qc$nVar[sel] / (qc$nRef[sel] + qc$nVar[sel]))
@@ -361,9 +361,9 @@ for (i in amps) {
 		qc$qScoreI[j] <- inss$Q[high]
 		pVal.I[j] <- inss$pVal[high]
 	}
-	print(sum(-10 * log10(pees) > 100))
-	print(sum(qc$qScoreI[selIns] > 100))
-	print(sum(qc$qScoreD[selDels] > 100))
+	#print(sum(-10 * log10(pees) > 100))
+	#print(sum(qc$qScoreI[selIns] > 100))
+	#print(sum(qc$qScoreD[selDels] > 100))
 }
 
 p.adjust(qc$pVal) -> qc$pValAdj
@@ -462,7 +462,7 @@ for (j in 1:4) {
                 cnt <- NA
         }
         sumTrans$cnt[pos + j] <- cnt
-        print(cnt)
+        #print(cnt)
 }}
 
 #sumTrans$cnt / sumTrans$nvar / sumTrans$tot * 1000000 -> tmp
@@ -554,13 +554,13 @@ for (j in 1:4) {
                 cnt <- NA
         }
         sumTrans$cnt[pos + j] <- cnt
-        print(cnt)
+        #print(cnt)
 }}
 #totalNT <- sum(qc$nVar) + sum(qc$nRef)
 sumTrans$cnt / median(sumTrans$cnt, na.rm=T) -> sumTrans$cor
 #sumTrans$cnt / totalNT -> sumTrans$cor
 #sumTrans$cnt / min(sumTrans$cnt, na.rm=T) -> sumTrans$cor
-print(sumTrans)
+#print(sumTrans)
 
 pCor <- rep(1, nrow(qc))
 for (i in 1:4) {
