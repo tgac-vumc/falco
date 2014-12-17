@@ -13,13 +13,13 @@ my $QavgLim = 20;
 
 open FAI, "<$fai";
 my %idx = ();
-print STDERR "Reading fa index ... ";
+print STDOUT "Reading fa index ... ";
 while (<FAI>) {
         chomp;
         my @row = split(/\t/, $_);
         $idx{$row[0]} = [@row];
 }
-print STDERR "done\n";
+print STDOUT "done\n";
 
 close FAI;
 open REF, "<$ref";
@@ -142,7 +142,7 @@ while (<SAM>) {
 	push @{$stats{$amp}{sam}}, [@row];
 	$stats{$amp}{depth}++;
 	if (($pamp ne ".") && ($amp ne $pamp)) {
-		print STDERR "Flushing $pamp $stats{$pamp}{depth}\n";
+		print STDOUT "Flushing $pamp $stats{$pamp}{depth}\n";
 #		print TARGET join("\t", $pamp, map { $stats{$pamp}{$_} } qw/chr start end assayStart assayEnd depth/) . "\n";
 		my $data = &call($stats{$pamp}{sam});
 		&flush($data, $stats{$pamp}{chr}, $pamp, $stats{$pamp}{assayStart}, $stats{$pamp}{assayEnd});
@@ -311,7 +311,7 @@ sub flush {
 	my $s = shift;
 	my $e = shift;
         return unless (exists($data->{$chr}));
-        print STDERR "printing ... ";
+        print STDOUT "printing ... ";
 	my %reads = (); # read->pos->nt
 #        foreach my $p (sort {$a <=> $b} keys(%{$data->{$chr}})) {
 #        	unless (($p >=  $s) && ($p <= $e)) {
@@ -361,6 +361,6 @@ sub flush {
 	foreach my $r (sort { $a <=> $b } keys(%reads)) {
 		print QC2 join("\t", $r, $chr, $_, $amp, $reads{$r}{$_}) . "\n" foreach (sort {$a <=> $b} keys(%{$reads{$r}})); 
 	}
-	print STDERR "done\n";
+	print STDOUT "done\n";
 }
 
