@@ -13,7 +13,7 @@ my $header = qq(##fileformat=VCFv4.1
 ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Depth">
 ##FORMAT=<ID=AD,Number=2,Type=Integer,Description="Allele Distribution">
 ##FORMAT=<ID=AB,Number=1,Type=Float,Description="Allele Ballance nref/nref+nvar">
-##INFO=<ID=TARGET,Numer=1,Type=String,Description="TSACP Target name">
+##INFO=<ID=TARGET,Number=1,Type=String,Description="TSACP Target name">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	$base
 );
 
