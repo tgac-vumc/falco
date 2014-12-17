@@ -30,13 +30,15 @@ while (<QC>) {
 	next if ($row[$col{dp}] < $minDp);
 	# Var
 	if ($row[$col{qScore}] >= $minVarQ && $row[$col{nVar}] > $minVar) {
-		print OUT $line;		
+		print OUT $line;
+		next;		
 	}
 	# Ins
 	if ($row[$col{qScoreI}] >= $minInsQ) {
 		$row[$col{ins}] =~ /:(\d+)/;
 		if ($1 >= $minIns) {
 			print OUT $line;
+			next;		
 		}
 	}
 	# Del
@@ -44,6 +46,7 @@ while (<QC>) {
 		$row[$col{del}] =~ /:(\d+)/;
 		if ($1 >= $minDel) {
 			print OUT $line;
+			next;		
 		}
 	}
 }
