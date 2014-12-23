@@ -3,10 +3,10 @@
 use strict;
 
 my $bam = shift;
-my $ref = shift || "/gsdata/tmp/TSACP/ampliconPipeLine/ref/hg19/bwa-5/hg19.fa";
-my $manifest = shift || "/gsdata/tmp/TSACP/ampliconPipeLine/ref/manifests/TSACP/TruSeq_Amplicon_Cancer_Panel_Manifest_AFP1_PN15032433.txt";
+my $ref = shift;
+my $manifest = shift;
 my $base = shift || "output";
-my $samtools = shift || "/gsdata/tmp/TSACP/ampliconPipeLine/bin/samtools/samtools-0.1.18/samtools";
+my $samtools = shift || `which samtools`;
 my $fai = $ref . ".fai";
 my $Qthreshold = 30;
 my $QavgLim = 0;
@@ -192,7 +192,6 @@ sub call {
 	my $col_qual = 10;
 	my $col_pos = 3;
 	my $col_cigar = 5;
-	my $refSeqPad = "P";
 	my %cooc = ();
 	my $cnt = 1;
 	foreach my $r (0 .. $#$SAM) {
@@ -237,8 +236,6 @@ sub call {
 				my $qinsert .= substr($qual, 0, $n, "");
 				push @{$data{$row[$col_chr]}{$pos - 1}{"IR"}{$insert}}, $r;
 				$data{$row[$col_chr]}{$pos - 1}{"I"}{$insert}++;
-#				push @{$cooc{$pos - 1 }{$insert}}, $cnt;
-	#			$cooc{($pos - 1) .":".$insert}{$cnt} = 0;
 			}
 			elsif ($cigE->[1] eq "M") {
 				my $mseq = substr($read, 0, $n, "");
@@ -252,10 +249,6 @@ sub call {
 					}
 					$data{$row[$col_chr]}{$pos + $nt}{"NT"}{$ntn}++;
 					push @{$data{$row[$col_chr]}{$pos + $nt}{"NTR"}{$ntn}}, $r if (uc($ntn) ne uc($data{$row[$col_chr]}{$pos + $nt}{refNT}));
-#					if (($ntn ne $data{$row[$col_chr]}{$pos + $nt}{"refNT"}) && ($ntn ne "N")) {
-						#push @{$cooc{$pos + $nt}{$ntn}}, $cnt;
-	#					$cooc{($pos + $nt) .":".$ntn}{$cnt} = 0;
-#					}
 				}
 				$pos += $n;
 
@@ -264,8 +257,6 @@ sub call {
 				my $deletion = join("", map { $data{$row[$col_chr]}{$pos + $_ -1}{"refNT"} } (0 .. ($n)));
 				push @{$data{$row[$col_chr]}{$pos - 1}{"DR"}{$deletion}}, $r;
 				$data{$row[$col_chr]}{$pos - 1}{"D"}{$deletion}++;
-				#push @{$cooc{$pos - 1 }{$deletion}}, $cnt;
-	#			$cooc{($pos - 1) . ":" . $deletion}{$cnt} = 0;
 				$pos += $n;
 			}
 		}
