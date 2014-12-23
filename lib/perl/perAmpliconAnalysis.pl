@@ -8,8 +8,8 @@ my $manifest = shift || "/gsdata/tmp/TSACP/ampliconPipeLine/ref/manifests/TSACP/
 my $base = shift || "output";
 my $samtools = shift || "/gsdata/tmp/TSACP/ampliconPipeLine/bin/samtools/samtools-0.1.18/samtools";
 my $fai = $ref . ".fai";
-my $Qthreshold = 10;
-my $QavgLim = 20;
+my $Qthreshold = 30;
+my $QavgLim = 0;
 
 open FAI, "<$fai";
 my %idx = ();
@@ -204,13 +204,15 @@ sub call {
 		my $aln = 0;
 
 		# Calculate mean read quality and skip if it's below threshold
-		my $QSum = 0;
-		my $Qlen = length($qual);
+		if ($QavgLim > 0) {
+			my $QSum = 0;
+			my $Qlen = length($qual);
 
-		$QSum += ord($qual) foreach 1 .. $Qlen;
-		
-		my $Qavg = $QSum / $Qlen - 33;
-		next if ($Qavg < $QavgLim);
+			$QSum += ord($qual) foreach 1 .. $Qlen;
+
+			my $Qavg = $QSum / $Qlen - 33;
+			next if ($Qavg < $QavgLim);
+		}
 
 		while ($row[$col_cigar] =~ /(\d+)(\D)/g) {
 			push @cig, [$1, $2];
@@ -247,9 +249,9 @@ sub call {
 					$data{$row[$col_chr]}{$pos + $nt}{"DP"}++;
 					my $ntq = substr($mqual, $nt, 1);
 					my $ntn = substr($mseq, $nt, 1);
-				#	if (ord($ntq) - 33  < $Qthreshold) {
-				#		$ntn = "N";
-				#	}
+					if (ord($ntq) - 33  < $Qthreshold) {
+						$ntn = "N";
+					}
 					$data{$row[$col_chr]}{$pos + $nt}{"NT"}{$ntn}++;
 					push @{$data{$row[$col_chr]}{$pos + $nt}{"NTR"}{$ntn}}, $r if (uc($ntn) ne uc($data{$row[$col_chr]}{$pos + $nt}{refNT}));
 #					if (($ntn ne $data{$row[$col_chr]}{$pos + $nt}{"refNT"}) && ($ntn ne "N")) {
