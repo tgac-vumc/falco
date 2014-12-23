@@ -152,6 +152,11 @@ while (<SAM>) {
 	$cnt++;
 }
 
+print STDOUT "Flushing $pamp $stats{$pamp}{depth}\n";
+my $data = &call($stats{$pamp}{sam});
+&flush($data, $stats{$pamp}{chr}, $pamp, $stats{$pamp}{assayStart}, $stats{$pamp}{assayEnd});
+$stats{$pamp}{sam} = [];
+
 close QC;
 close QC2;
 foreach my $pamp (keys %stats) {
