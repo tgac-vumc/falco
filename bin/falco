@@ -55,15 +55,15 @@ if ($samtools !~ /samtools$/) {
 # perl qcFilt
 # perl qc2vcf
 
-print STDERR localtime() . " [$$] $perAmpliconAnalysis $bam $ref $manifest $base $samtools\n";
+print STDOUT localtime() . " [$$] $perAmpliconAnalysis $bam $ref $manifest $base $samtools\n";
 system("$perAmpliconAnalysis $bam $ref $manifest $base $samtools");
 
-print STDERR localtime() . " [$$] $rscript $addQual $base.qc.ann.txt $base.qc.ann.qual.txt $func $locifilt\n";
+print STDOUT localtime() . " [$$] $rscript $addQual $base.qc.ann.txt $base.qc.ann.qual.txt $func $locifilt\n";
 system("$rscript $addQual $base.qc.ann.txt $base.qc.ann.qual.txt $func $locifilt");
 
-print STDERR localtime() . " [$$] $qcFilt $base.qc.ann.qual.txt $base\n";
+print STDOUT localtime() . " [$$] $qcFilt $base.qc.ann.qual.txt $base\n";
 system("$qcFilt $base.qc.ann.qual.txt $base");
 
-print STDERR localtime() . " [$$] $qc2vcf $base.qc.ann.qual.filt.txt > $base.falco.vcf\n";
+print STDOUT localtime() . " [$$] $qc2vcf $base.qc.ann.qual.filt.txt > $base.falco.vcf\n";
 system("$qc2vcf $base.qc.ann.qual.filt.txt > $base.falco.vcf");
 
