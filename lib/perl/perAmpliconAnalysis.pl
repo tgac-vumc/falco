@@ -219,22 +219,20 @@ sub call {
 			$aln += $1;
 		}
 		if ($ppos != $pos) {
-			my $offset = $idx{$row[$col_chr]}->[2];
-			my $nl = int (($row[$col_pos] - 1) / $idx{$row[$col_chr]}->[3]);
-			$offset += $row[$col_pos] + $nl - 1;
+			my $offset = $idx{$row[$col_chr]}->[2]; # Byte offset for chromosome
+			my $nl = int (($row[$col_pos] - 1) / $idx{$row[$col_chr]}->[3]); # Newline bytes to offset
+			$offset += $row[$col_pos] + $nl - 50 - 1; # Read in 50 nt prior to start of amplicon
 			seek REF, $offset, 0;
-			$refSeqPad = substr($refSeq, -1, 1);
-			read REF, $refSeq, 1000;#  length($read) * 5;
+			read REF, $refSeq, 350;
 			$refSeq =~ s/\s//g;
-			$data{$row[$col_chr]}{$row[$col_pos] + $_}{"refNT"} = substr($refSeq, $_, 1) foreach (0 .. $aln);
+			$data{$row[$col_chr]}{$row[$col_pos] + $_ - 50 + 1}{"refNT"} = substr($refSeq, $_, 1) foreach (0 .. 300);
 			$ppos = $pos;
 		}
 
 		foreach my $cigE (@cig) {
 			my $n = $cigE->[0];
 			if ($cigE->[1] eq "I") {
-				my $rpos = $pos - $row[$col_pos];
-				my $insert = substr($refSeq, $rpos - 1, 1) or print STDERR "Outside?" . $rpos . ":" . length($refSeq) . " $pos\n";
+				my $insert = $data{$row[$col_chr]}{$pos - 1}{"refNT"};
 				$insert .= substr($read, 0, $n, "");
 				my $qinsert .= substr($qual, 0, $n, "");
 				push @{$data{$row[$col_chr]}{$pos - 1}{"IR"}{$insert}}, $r;
@@ -263,8 +261,7 @@ sub call {
 
 			}
 			elsif ($cigE->[1] eq "D") {
-				my $rpos = $pos - $row[$col_pos];
-				my $deletion = substr($refSeq, $rpos - 1, $n + 1); # Substring out of string error ?
+				my $deletion = join("", map { $data{$row[$col_chr]}{$pos + $_ -1}{"refNT"} } (0 .. ($n)));
 				push @{$data{$row[$col_chr]}{$pos - 1}{"DR"}{$deletion}}, $r;
 				$data{$row[$col_chr]}{$pos - 1}{"D"}{$deletion}++;
 				#push @{$cooc{$pos - 1 }{$deletion}}, $cnt;
