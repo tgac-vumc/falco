@@ -89,11 +89,16 @@ my $stampy = 0;
 open SAMH, "$samtools view -H $bam |";
 while (<SAMH>) {
 	$stampy = 1 if (/PN:stampy/);
-	print STDERR "STAMPY SPOTTED!!!" if (/PN:stampy/);
+	if (/PN:stampy/) {
+		print STDERR "[WARNING]: Stampy aligned reads is no longer supported.\n";
+	}
+	if (/SO:unsorted/) {
+		print STDERR "[Warning]: Alignments seem to be unsorted.\n";
+	}
 }
 close SAMH;
 
-open SAM, "$samtools view $bam |";
+open SAM, "$samtools view -F 4 $bam |";
 while (<SAM>) {
 	last unless (/^@/);
 }
@@ -114,8 +119,9 @@ while (<SAM>) {
 	my $l = 0;
 	my $cig = $row[5];
 	$cig =~ s/(\d+)[MD]/$l+=$1/eg;
-		
-	my $amp = $hash{$row[2]}{$row[3]}{$l} || next;
+	
+	# Check if alignment fits amplicon probes / primers.
+	my $amp = $hash{$row[2]}{$row[3]}{$l} || next; 
 
 	push @{$stats{$amp}{sam}}, [@row];
 	$stats{$amp}{depth}++;
@@ -144,7 +150,6 @@ close SAM;
 
 sub call {
 	my $SAM = shift;
-
 	my $ppos = 0;
 	my $pchr = "";
 	my %data = ();
