@@ -1,14 +1,19 @@
 #!/usr/bin/perl
 
 use strict;
+use File::Basename;
 
 my $qc = shift;
+my $base = shift || undef;
+
+if ($base) {
+	$base = basename($qc, "qc.ann.qual.filt.txt")
+}
 
 my $minDp = 100;
 my $minVarDp = 5;
 my $minVaf = 0.01;
 
-my $base = (split(/\//, $qc))[-1];
 my $header = qq(##fileformat=VCFv4.1
 ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Depth">
 ##FORMAT=<ID=AD,Number=2,Type=Integer,Description="Allele Distribution">
