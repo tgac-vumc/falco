@@ -6,8 +6,8 @@ use File::Basename;
 my $qc = shift;
 my $base = shift || undef;
 
-if ($base) {
-	$base = basename($qc, "qc.ann.qual.filt.txt")
+unless ($base) {
+	$base = basename($qc, ".qc.ann.qual.filt.txt")
 }
 
 my $minDp = 100;
