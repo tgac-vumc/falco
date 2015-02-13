@@ -1,0 +1,16 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+LIB="$DIR/../lib"
+
+base=$1
+
+# TODO Fill in the blanks here
+clinvar=""
+locifilt=""
+
+plotPng=$LIB/R/plotsPng.R
+
+# Plot
+echo `date` " [$$] - plotting data" 
+Rscript $plotPng $base.qc.ann.qual.txt $base.qc2.ann.txt $base.qc.targets.txt $base.res.filtered.tsv $clinvar $locifilt $base
