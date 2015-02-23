@@ -5,7 +5,7 @@ use Cwd;
 use Spreadsheet::WriteExcel;
 
 $| = 1;
-my $dir = shift;
+my $dir = shift || "./";
 my $outdir = shift || "./";
 my $pat = shift || "";
 my $cwd = cwd();
@@ -14,7 +14,7 @@ my $cwd = cwd();
 # QC
 # Results
 my @samples = ();
-open INDEX, ">$outdir/index.html";
+#open INDEX, ">$outdir/index.html";
 my $htmlHead = qq(
 <!DOCTYPE html>
 <html>
@@ -28,7 +28,7 @@ td {border: 1px solid gray; padding: 5px; text-align: right;}
 </head>
 <body>
 );
-print INDEX $htmlHead;
+#print INDEX $htmlHead;
 opendir DIR, "$dir";
 while (my $cd = readdir DIR) {
 	if ($cd =~ /(.*$pat)\.qc\.targets\.txt$/) {
@@ -40,9 +40,9 @@ while (my $cd = readdir DIR) {
 }
 close DIR;
 
-print INDEX "<table>";
-print INDEX "<tr><th>Download:</th><th><a href=\"runQC.xls\">runQC.xls</a></th>";
-print INDEX "<tr><th>Sample</th><th>BAM</th><th>snp</th><th>indel</th><th>readCnt</th><th>Amp > 100</th>\n";
+#print INDEX "<table>";
+#print INDEX "<tr><th>Download:</th><th><a href=\"runQC.xls\">runQC.xls</a></th>";
+#print INDEX "<tr><th>Sample</th><th>BAM</th><th>snp</th><th>indel</th><th>readCnt</th><th>Amp > 100</th>\n";
 #foreach my $sam (sort @samples) {
 #	print INDEX "<tr><td><a href=$sam.html>$sam</a></td><td><a href=$sam.bam>BAM</a></td><td><a href=$sam.bam.bai>BAI</a></td></tr>\n";
 	
@@ -140,16 +140,19 @@ foreach my $sample (sort @samples) {
 		}
 	}
 	close RES;
-	print OUT "<img src=\"$sample/$sample.vaf.png\">";
-	print OUT "<img src=\"$sample/$sample.raf.png\">";
-	print OUT "<img src=\"$sample/$sample.snv-q.png\">";
-	print OUT "<img src=\"$sample/$sample.snv-q-zoom.png\">";
-	print OUT "<img src=\"$sample/$sample.ins-q.png\">";
-	print OUT "<img src=\"$sample/$sample.del-q.png\">";
+	
+	## Rplots that are not self-explanatory enough
+	#print OUT "<img src=\"$sample/$sample.vaf.png\">";
+	#print OUT "<img src=\"$sample/$sample.raf.png\">";
+	#print OUT "<img src=\"$sample/$sample.snv-q.png\">";
+	#print OUT "<img src=\"$sample/$sample.snv-q-zoom.png\">";
+	#print OUT "<img src=\"$sample/$sample.ins-q.png\">";
+	#print OUT "<img src=\"$sample/$sample.del-q.png\">";
+	
 	print OUT "<img src=\"$sample/$sample.amp-dp.png\">";
-	print OUT "<img src=\"$sample/$sample.heat.png\">";
-	print OUT "<img src=\"$sample/$sample.bias.png\">";
-	print OUT "<img src=\"$sample/$sample.biasheat.png\">";
+	#print OUT "<img src=\"$sample/$sample.heat.png\">";
+	#print OUT "<img src=\"$sample/$sample.bias.png\">";
+	#print OUT "<img src=\"$sample/$sample.biasheat.png\">";
 	#print OUT "<img src=\"$sample/$sample.vafcut.png\">";
 	print OUT "<table border=1><tr><th>Download:</th><th><a href=\"$sample.tsv\">TSV</a></th>";
 	print OUT "<th><a href=\"$sample.xls\">XLS</a></th></table>";
@@ -198,10 +201,10 @@ foreach my $sample (sort @samples) {
 		}
 		print STDERR $locus . ":" . $nres . "\n";
 		print STDERR $locus . ":" . join("-", @{$QC{$locus}{RES}}) . "\n";
-                if (scalar(@{$QC{$locus}{RES}}) == 0) { #$nres == 0) {
-                        print OUT2 join("\t", $locus, $QC{$locus}{QC}->[-1], ("-") x scalar(@keyColsI)) . "\n";
-                        push @$excelAref, [$locus, $QC{$locus}{QC}->[-1], ("-") x scalar(@keyColsI)];
-                }
+		if (scalar(@{$QC{$locus}{RES}}) == 0) { #$nres == 0) {
+			print OUT2 join("\t", $locus, $QC{$locus}{QC}->[-1], ("-") x scalar(@keyColsI)) . "\n";
+			push @$excelAref, [$locus, $QC{$locus}{QC}->[-1], ("-") x scalar(@keyColsI)];
+		}
 		print OUT "</tr>\n";
 	}
 	print OUT "</table>\n";
@@ -213,7 +216,7 @@ foreach my $sample (sort @samples) {
 	$excelBook->close();
 	my @resCnt = map { $rescnt{$_} || 0 } qw/Falcosnp Falcoindel/;
 	my $pctGood = sprintf("%.2f", $amp100 / scalar(keys(%QC)) * 100);
-	print INDEX "<tr><td><a href=$sample.html>$sample</a></td><td><a href=$sample.bam>BAM</a></td><td>$resCnt[0]</td><td>$resCnt[1]</td><td>$readCnt</td><td>$pctGood</td></tr>\n";
+	#print INDEX "<tr><td><a href=$sample.html>$sample</a></td><td><a href=$sample.bam>BAM</a></td><td>$resCnt[0]</td><td>$resCnt[1]</td><td>$readCnt</td><td>$pctGood</td></tr>\n";
 	my $ntbsAmps = join(",", map { s/^(.*?)\.chr.*$/$1/; $_;  } keys(%ntbGenes));
 	push @{$excel0Ref}, [$sample, $runName, $readCnt, $pctGood, $ntbsAmps];
 }
@@ -221,11 +224,11 @@ foreach my $sample (sort @samples) {
 $excel0->write_col(0,0, $excel0Ref);
 $excelBook0->close();
 
-print INDEX "</table>";
-print INDEX "<img src=\"alnStats.png\">";
-print INDEX "<img src=\"errStats.png\">";
-print INDEX "<img src=\"qualStats.png\">";
-print INDEX "</html>";
-close INDEX;
+#print INDEX "</table>";
+#print INDEX "<img src=\"alnStats.png\">";
+#print INDEX "<img src=\"errStats.png\">";
+#print INDEX "<img src=\"qualStats.png\">";
+#print INDEX "</html>";
+#close INDEX;
 
 
