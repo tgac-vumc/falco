@@ -1,0 +1,85 @@
+#!/usr/bin/perl
+use strict;
+use Cwd 'abs_path';
+use Getopt::Long;
+use File::Basename;
+
+my $absPath = abs_path($0);
+my $dir = dirname($absPath);
+my $lib = "$dir/../lib/";
+
+my $vcf2tsv  = "$lib/perl/vcf2tsv.pl";
+my $spliteff = "$lib/perl/splitEff.pl";
+my $filter   = "$lib/perl/filter.pl";
+my $plotPng  = "$lib/R/plotsPng.R";
+my $mkReport = "$lib/perl/mkHtmlReport.pl";
+
+my $locifilt = "$dir/../ref/filters/filter.tsv";
+my $manifest = "$dir/../ref/TSACP/TruSeq_Amplicon_Cancer_Panel_Manifest_AFP1_PN15032433.txt";
+
+my $canonicals = "$dir/../ref/TSACP/canonicals.tsv";
+my $clinvar    = "$dir/../ref/filters/clinvar_00-latest.f.vcf";
+my $cosmic     = "$dir/../ref/filters/CosmicCodingMuts_v64_26032013_noLimit_wgs.f.vcf";
+my $cosmicNC   = "$dir/../ref/filters/CosmicNonCodingVariants_v64_26032013_noLimit_wgs.f.vcf";
+
+my $base = undef;
+my $vcf = undef;
+my $noFilt = undef;
+my $noPlot = undef;
+
+my $qc_ann_qual_txt = undef;
+my $qc2_ann_txt = undef
+my $qc_targets_txt = undef;
+
+GetOptions (
+	"vcf=s"        => \$vcf,
+	"output=s"     => \$base,
+	"canonicals=s" => \$canonicals,
+	"clinvar=s"    => \$clinvar,
+	"cosmic=s"     => \$cosmic,
+	"cosmicNC=s"   => \$cosmicNC,
+	"noFilt"       => \$noFilt,
+	"noPlot"       => \$noPlot,
+	"qc_ann_qual_txt=s"  => \$qc_ann_qual_txt,
+	"qc2_ann_txt=s"      => \$qc2_ann_txt,
+	"qc_targets_txt=s"   => \$qc_targets_txt,
+)
+or die("Error in command line arguments\n");
+
+## sanity checks
+die( "No base name provided [-output]\n" ) unless defined($base) and $base ne '';
+die( "No VCF file provided [-vcf]\n" ) unless defined($vcf) and -f $vcf;
+die( "Missing input [-qc_ann_qual_txt]\n" ) unless defined($qc_ann_qual_txt) and -f $qc_ann_qual_txt;
+die( "Missing input [-qc2_ann_txt]\n" ) unless defined($qc2_ann_txt) and -f $qc2_ann_txt;
+die( "Missing input [-qc_targets_txt]\n" ) unless defined($qc_targets_txt) and -f $qc_targets_txt;
+die( "Required file does not exists [$canonicals]\n" ) unless -f $canonicals;
+die( "Required file does not exists [$clinvar]\n" ) unless -f $clinvar;
+die( "Required file does not exists [$cosmic]\n" ) unless -f $cosmic;
+die( "Required file does not exists [$cosmicNC]\n" ) unless -f $cosmicNC;
+
+
+## Rscript check
+my $rscript = `which Rscript`;
+chomp $rscript;
+if ($rscript !~ /Rscript$/) {
+	print STDERR "No Rscript present in PATH\n";
+	exit 1;
+}
+
+## FILTERING
+print STDOUT localtime() . " [$$] converting vcf to tsv\n";
+system( "$vcf2tsv $vcf > $base\.tsv" );
+
+print STDOUT localtime() . " [$$] splitting vcf columns\n";
+system( "$spliteff $base\.tsv Falco >> $base\.res\.tsv" );
+
+print STDOUT localtime() . " [$$] filtering data\n";
+system( "$filter $base\.res\.tsv $canonicals $clinvar $cosmic $cosmicNC > $base\.res\.filtered\.tsv" );	
+
+## PLOTTING
+print STDOUT localtime() . " [$$] Creating plots\n";
+system( "Rscript $plotPng $qc_ann_qual_txt $qc2_ann_txt $qc_targets_txt $base\.res\.filtered\.tsv $clinvar $locifilt $base" );
+
+## REPORTING
+print STDOUT localtime() . " [$$] Creating HTML report\n";
+system( "perl $mkReport" );
