@@ -19,7 +19,9 @@ read.delim(args[3], header=T, stringsAsFactors=F) -> qc
 print(paste("Reading", args[4], sep=" "));
 read.delim(args[4], header=T, stringsAsFactors=F, row.names=NULL) -> res
 print(paste("Reading", args[5], sep=" "));
-read.delim(args[5], header=T, stringsAsFactors=F) -> dclin
+## clinvar is a VCF with "##" header lines to skip
+headerLineCount <- length( grep('^##', readLines(args[5])) )
+read.delim(args[5], header=T, stringsAsFactors=F, skip=headerLineCount) -> dclin
 print(paste("Reading", args[6], sep=" "));
 read.delim(args[6], header=F, stringsAsFactors=F) -> lociFilt
 base <- args[7]
@@ -42,158 +44,158 @@ setwd(base)
 #unique(unlist(strsplit(d$V3, "\\|"))) -> targets
 targets <- qc[,1]
 if (1) { 
-print("Plotting variant heatmap")
-# Including off targets increases the amplicon length set at median amplicon length + 10%.
-median(qc$end - qc$start) -> maxAmpLn
-maxAmpLn <- ceiling(1.2 * maxAmpLn)
-print(maxAmpLn)
-ampHeatF <- matrix(ncol=maxAmpLn, nrow=nrow(qc))
-ampHeatR <- matrix(ncol=maxAmpLn, nrow=nrow(qc))
-#dPos <- paste(d$chr, d$pos, sep=":")
-#errPos <- paste(dclin$chr, dclin$pos, sep=":")
-#dPosClin <- dPos %in% errPos
+	print("Plotting variant heatmap")
+	# Including off targets increases the amplicon length set at median amplicon length + 10%.
+	median(qc$end - qc$start) -> maxAmpLn
+	maxAmpLn <- ceiling(1.2 * maxAmpLn)
+	print(maxAmpLn)
+	ampHeatF <- matrix(ncol=maxAmpLn, nrow=nrow(qc))
+	ampHeatR <- matrix(ncol=maxAmpLn, nrow=nrow(qc))
+	#dPos <- paste(d$chr, d$pos, sep=":")
+	#errPos <- paste(dclin$chr, dclin$pos, sep=":")
+	#dPosClin <- dPos %in% errPos
 
-dPosClin <- !inClin & !inSnp 
+	dPosClin <- !inClin & !inSnp 
 
-for (i in 1:nrow(qc)) {
-	d$pos %in% qc$start[i]:qc$end[i] -> sel
-	poss <- d$pos[sel & !dPosClin] - qc$start[i] + 1
-	poss <- poss[poss <= maxAmpLn]
-	ampHeatF[i, poss] <- d$nVar[sel & !dPosClin] + d$nN[sel & !dPosClin]
-	ampHeatR[i, poss] <- rev(d$nVar[sel & !dPosClin] + d$nN[sel & !dPosClin])
+	for (i in 1:nrow(qc)) {
+		d$pos %in% qc$start[i]:qc$end[i] -> sel
+		poss <- d$pos[sel & !dPosClin] - qc$start[i] + 1
+		poss <- poss[poss <= maxAmpLn]
+		ampHeatF[i, poss] <- d$nVar[sel & !dPosClin] + d$nN[sel & !dPosClin]
+		ampHeatR[i, poss] <- rev(d$nVar[sel & !dPosClin] + d$nN[sel & !dPosClin])
+	}
+	png(paste(base,"heat","png", sep="."), width=960, height=480)
+	par(mar=c(4,4,4,2) + .1)
+
+	ampHeatF[is.na(ampHeatF)] <- 0
+	ampHeatR[is.na(ampHeatR)] <- 0
+	layout(matrix(1:2, nrow=2))
+	maxN <- quantile(ampHeatF, .99)
+	#heatmap(ampHeat)
+	boxplot(ampHeatF, ylim=c(0, maxN), pch=20, cex=.4, main="Non reference counts R1")
+	rect(150, 0, ncol(ampHeatF), maxN, col="#00000040")
+	boxplot(ampHeatR, ylim=c(0, maxN), pch=20, cex=.4, main="Non reference counts R2")
+	rect(150, 0, ncol(ampHeatR), maxN, col="#00000040")
+	dev.off()
+
+	#d[,7]/d[,4] * 100 -> d$pctREF
+	#d[,8]/d[,4] * 100 -> d$pctVAR
+	d$nRef/d$dp * 100 -> d$pctREF
+	d$nVar/d$dp * 100 -> d$pctVAR
+	d$vaf <- d$nVar / (d$nVar + d$nRef) * 100
+	print("Plotting ref frequencies")
+	png(paste(base,"raf","png", sep="."), width=480, height=480)
+	dref <- density(d$pctREF[!dPosClin])
+	#plot(dref, ylim=range(dref$y[dref$x < 80] ))
+	hist(d$pctREF[!dPosClin], breaks=100, ylim=c(0, 30), col="#00000040", border=NA)
+	dev.off()
+
+	print("Plotting var frequencies")
+	png(paste(base,"vaf","png", sep="."), width=480, height=480)
+	dvar <- density(d$pctVAR[!dPosClin])
+	#plot(dvar, ylim=range(dvar$y[dvar$x > 20] ))
+	hist(d$pctVAR[!dPosClin], breaks=100, ylim=c(0, 30), col="#00000040", border=NA)
+	dev.off()
+
+	# Set vaf cutoff
+	#q95 <- quantile(d$qScore, .95, na.rm=T)
+	q95 <- 20
+	vs95 <- sd(d$pctVAR[!dPosClin & d$qScore < q95], na.rm=T)
+	v95 <- mean(d$pctVAR[!dPosClin & d$qScore < q95], na.rm=T) + vs95 * 3
+
+	nCall <- sum((d$pctVAR > v95) & d$qScore > q95 & !inSnp, na.rm=T)
+	print(nCall)
+	print("Plotting vaf vs q")
+	png(paste(base,"snv-q","png", sep="."), width=480, height=480)
+	plot(d$qScore, d$pctVAR, pch=20, cex=.5, main=paste("q:", q95, "-", "v:", v95, "--", "s:", nCall, sep=" "))
+	abline(h=c(1,5), v=c(20,13), lty=2)
+	abline(v=q95, h=v95, lty=3, col=2)
+	points(d$qScore[d$dp < 100], d$pctVAR[d$dp < 100], pch=20, cex=1.2, col=2)
+	points(d$qScore[d$nVar < 10], d$pctVAR[d$nVar < 10], pch=20, cex=1, col=4)
+	legend(30,80, c("pass", "dp < 100", "nVar < 10"), col=c(1,2,4), pch=20)
+	dev.off()
+
+	print("Plotting vaf vs q zoomed")
+	png(paste(base,"snv-q-zoom","png", sep="."), width=480, height=480)
+	plot(d$qScore, d$pctVAR, pch=20, cex=.5, xlim=c(0, 40),ylim=c(0,10))
+	abline(h=c(1,5), v=c(20,13), lty=2)
+	abline(v=q95, h=v95, lty=3, col=2)
+	points(d$qScore[d$dp < 100], d$pctVAR[d$dp < 100], pch=20, cex=1.2, col=2)
+	points(d$qScore[d$nVar < 10], d$pctVAR[d$nVar < 10], pch=20, cex=1, col=4)
+	legend("topright", c("pass", "dp < 100", "nVar < 10"), col=c(1,2,4), pch=20)
+	dev.off()
+
+	print("Plotting ins vs q")
+	d$vafI <- 0
+	d$occI <- 0
+	if (sum(d$ins != ".") > 0) {
+		png(paste(base,"ins-q","png", sep="."), width=480, height=480)
+		data.frame(matrix(unlist(strsplit(unlist(strsplit(as.character(d$ins[d$ins != "."]), "\\|")), ":")), ncol=2, byrow=T)) -> insDat
+		colnames(insDat) <- c("seq", "occ")
+		insDat$seq <- as.character(insDat$seq)
+		insDat$occ <- as.numeric(as.vector(insDat$occ))
+		nchar(insDat$seq) -> insDat$ln
+		d$occI[d$ins != "."] <- insDat$occ
+		d$vafI[d$ins != "."] <- insDat$occ / d$nRef[d$ins != "."]
+		d$qScoreI[d$qScoreI > 1000] <- 1000
+		plot(d$qScoreI, d$occI, pch=20, cex=1)
+		abline(h=c(10), v=c(20,13), lty=2)
+		# dp 500
+		sel <- d$dp < 100
+		points(d$qScoreI[sel], d$occI[sel], pch=20, cex=1.2, col=2)
+		# nVar 10
+		#sel <- d$occI < 10
+		#points(d$qScoreI[sel], d$occI[sel], pch=20, cex=1, col=3)
+		# vaf < 0.01
+		sel <- d$vafI < 0.01
+		points(d$qScoreI[sel], d$occI[sel], pch=20, cex=1, col=4)
+		legend("topleft", c("pass", "dp < 100", "vaf < 0.01"), col=c(1,2,4), pch=20)
+		dev.off()
+	}
+
+	print("Plotting del vs q")
+	d$vafD <- 0
+	d$occD <- 0
+	if (sum(d$del != "." ) > 0) {
+		png(paste(base,"del-q","png", sep="."), width=480, height=480)
+		data.frame(matrix(unlist(strsplit(unlist(strsplit(as.character(d$del[d$del != "."]), "\\|")), ":")), ncol=2, byrow=T)) -> delDat
+		colnames(delDat) <- c("seq", "occ")
+		delDat$seq <- as.character(delDat$seq)
+		delDat$occ <- as.numeric(as.vector(delDat$occ))
+		nchar(delDat$seq) -> delDat$ln
+		d$occD[d$del != "."] <- delDat$occ
+		d$vafD[d$del != "."] <- d$occD[d$del != "."] / d$nRef[d$del != "."]
+		d$qScoreD[d$qScoreD > 1000] <- 1000
+		#hist(d$qScoreD, breaks=1000, ylim=c(0,100))
+		#print(sum(d$qScoreD > 20))
+		#Sys.sleep(1)
+		plot(d$qScoreD, d$occD, pch=20, cex=1)
+		abline(h=c(10), v=c(20,13), lty=2)
+		# dp 500
+		sel <- d$dp < 100
+		points(d$qScoreD[sel], d$occD[sel], pch=20, cex=1.2, col=2)
+		# nVar 10
+		#sel <- d$occD < 10
+		#points(d$qScoreD[sel], d$occD[sel], pch=20, cex=1, col=3)
+		# vaf < 0.01
+		sel <- d$vafD < 0.01
+		points(d$qScoreD[sel], d$occD[sel], pch=20, cex=1, col=4)
+		legend("topleft", c("pass", "dp < 100", "vaf < 0.01"), col=c(1,2,4), pch=20)
+		dev.off()
+	}
+
+	sub("chr", "", qc$chr) -> qc$chrn
+	ampOrd <- order(qc$chrn, qc$start)
+
+	print("Plotting amplicon depths")
+	png(paste(base,"amp-dp","png", sep="."), width=960, height=480)
+	barplot(qc$depth[ampOrd])
+	abline(h=100, lty=2)
+	totRead <- sum(qc$depth, na.rm=T)
+	legend("topright", paste("Total read count: ", totRead, sep=""))
+	dev.off()
 }
-png(paste(base,"heat","png", sep="."), width=960, height=480)
-par(mar=c(4,4,4,2) + .1)
 
-ampHeatF[is.na(ampHeatF)] <- 0
-ampHeatR[is.na(ampHeatR)] <- 0
-layout(matrix(1:2, nrow=2))
-maxN <- quantile(ampHeatF, .99)
-#heatmap(ampHeat)
-boxplot(ampHeatF, ylim=c(0, maxN), pch=20, cex=.4, main="Non reference counts R1")
-rect(150, 0, ncol(ampHeatF), maxN, col="#00000040")
-boxplot(ampHeatR, ylim=c(0, maxN), pch=20, cex=.4, main="Non reference counts R2")
-rect(150, 0, ncol(ampHeatR), maxN, col="#00000040")
-dev.off()
-
-#d[,7]/d[,4] * 100 -> d$pctREF
-#d[,8]/d[,4] * 100 -> d$pctVAR
-d$nRef/d$dp * 100 -> d$pctREF
-d$nVar/d$dp * 100 -> d$pctVAR
-d$vaf <- d$nVar / (d$nVar + d$nRef) * 100
-print("Plotting ref frequencies")
-png(paste(base,"raf","png", sep="."), width=480, height=480)
-dref <- density(d$pctREF[!dPosClin])
-#plot(dref, ylim=range(dref$y[dref$x < 80] ))
-hist(d$pctREF[!dPosClin], breaks=100, ylim=c(0, 30), col="#00000040", border=NA)
-dev.off()
-
-print("Plotting var frequencies")
-png(paste(base,"vaf","png", sep="."), width=480, height=480)
-dvar <- density(d$pctVAR[!dPosClin])
-#plot(dvar, ylim=range(dvar$y[dvar$x > 20] ))
-hist(d$pctVAR[!dPosClin], breaks=100, ylim=c(0, 30), col="#00000040", border=NA)
-dev.off()
-
-# Set vaf cutoff
-#q95 <- quantile(d$qScore, .95, na.rm=T)
-q95 <- 20
-vs95 <- sd(d$pctVAR[!dPosClin & d$qScore < q95], na.rm=T)
-v95 <- mean(d$pctVAR[!dPosClin & d$qScore < q95], na.rm=T) + vs95 * 3
-
-nCall <- sum((d$pctVAR > v95) & d$qScore > q95 & !inSnp, na.rm=T)
-print(nCall)
-print("Plotting vaf vs q")
-png(paste(base,"snv-q","png", sep="."), width=480, height=480)
-plot(d$qScore, d$pctVAR, pch=20, cex=.5, main=paste("q:", q95, "-", "v:", v95, "--", "s:", nCall, sep=" "))
-abline(h=c(1,5), v=c(20,13), lty=2)
-abline(v=q95, h=v95, lty=3, col=2)
-points(d$qScore[d$dp < 100], d$pctVAR[d$dp < 100], pch=20, cex=1.2, col=2)
-points(d$qScore[d$nVar < 10], d$pctVAR[d$nVar < 10], pch=20, cex=1, col=4)
-legend(30,80, c("pass", "dp < 100", "nVar < 10"), col=c(1,2,4), pch=20)
-dev.off()
-
-print("Plotting vaf vs q zoomed")
-png(paste(base,"snv-q-zoom","png", sep="."), width=480, height=480)
-plot(d$qScore, d$pctVAR, pch=20, cex=.5, xlim=c(0, 40),ylim=c(0,10))
-abline(h=c(1,5), v=c(20,13), lty=2)
-abline(v=q95, h=v95, lty=3, col=2)
-points(d$qScore[d$dp < 100], d$pctVAR[d$dp < 100], pch=20, cex=1.2, col=2)
-points(d$qScore[d$nVar < 10], d$pctVAR[d$nVar < 10], pch=20, cex=1, col=4)
-legend("topright", c("pass", "dp < 100", "nVar < 10"), col=c(1,2,4), pch=20)
-dev.off()
-
-print("Plotting ins vs q")
-d$vafI <- 0
-d$occI <- 0
-if (sum(d$ins != ".") > 0) {
-png(paste(base,"ins-q","png", sep="."), width=480, height=480)
-data.frame(matrix(unlist(strsplit(unlist(strsplit(as.character(d$ins[d$ins != "."]), "\\|")), ":")), ncol=2, byrow=T)) -> insDat
-colnames(insDat) <- c("seq", "occ")
-insDat$seq <- as.character(insDat$seq)
-insDat$occ <- as.numeric(as.vector(insDat$occ))
-nchar(insDat$seq) -> insDat$ln
-d$occI[d$ins != "."] <- insDat$occ
-d$vafI[d$ins != "."] <- insDat$occ / d$nRef[d$ins != "."]
-d$qScoreI[d$qScoreI > 1000] <- 1000
-plot(d$qScoreI, d$occI, pch=20, cex=1)
-abline(h=c(10), v=c(20,13), lty=2)
-# dp 500
-sel <- d$dp < 100
-points(d$qScoreI[sel], d$occI[sel], pch=20, cex=1.2, col=2)
-# nVar 10
-#sel <- d$occI < 10
-#points(d$qScoreI[sel], d$occI[sel], pch=20, cex=1, col=3)
-# vaf < 0.01
-sel <- d$vafI < 0.01
-points(d$qScoreI[sel], d$occI[sel], pch=20, cex=1, col=4)
-legend("topleft", c("pass", "dp < 100", "vaf < 0.01"), col=c(1,2,4), pch=20)
-dev.off()
-}
-
-print("Plotting del vs q")
-d$vafD <- 0
-d$occD <- 0
-if (sum(d$del != "." ) > 0) {
-png(paste(base,"del-q","png", sep="."), width=480, height=480)
-data.frame(matrix(unlist(strsplit(unlist(strsplit(as.character(d$del[d$del != "."]), "\\|")), ":")), ncol=2, byrow=T)) -> delDat
-colnames(delDat) <- c("seq", "occ")
-delDat$seq <- as.character(delDat$seq)
-delDat$occ <- as.numeric(as.vector(delDat$occ))
-nchar(delDat$seq) -> delDat$ln
-d$occD[d$del != "."] <- delDat$occ
-d$vafD[d$del != "."] <- d$occD[d$del != "."] / d$nRef[d$del != "."]
-d$qScoreD[d$qScoreD > 1000] <- 1000
-#hist(d$qScoreD, breaks=1000, ylim=c(0,100))
-#print(sum(d$qScoreD > 20))
-#Sys.sleep(1)
-plot(d$qScoreD, d$occD, pch=20, cex=1)
-abline(h=c(10), v=c(20,13), lty=2)
-# dp 500
-sel <- d$dp < 100
-points(d$qScoreD[sel], d$occD[sel], pch=20, cex=1.2, col=2)
-# nVar 10
-#sel <- d$occD < 10
-#points(d$qScoreD[sel], d$occD[sel], pch=20, cex=1, col=3)
-# vaf < 0.01
-sel <- d$vafD < 0.01
-points(d$qScoreD[sel], d$occD[sel], pch=20, cex=1, col=4)
-legend("topleft", c("pass", "dp < 100", "vaf < 0.01"), col=c(1,2,4), pch=20)
-dev.off()
-}
-
-sub("chr", "", qc$chr) -> qc$chrn
-ampOrd <- order(qc$chrn, qc$start)
-
-print("Plotting amplicon depths")
-png(paste(base,"amp-dp","png", sep="."), width=960, height=480)
-barplot(qc$depth[ampOrd])
-abline(h=100, lty=2)
-totRead <- sum(qc$depth, na.rm=T)
-legend("topright", paste("Total read count: ", totRead, sep=""))
-dev.off()
-}
-#
 res$POS <- as.numeric(as.vector(res$POS))
 d$pos <- as.numeric(as.vector(d$pos))
 
