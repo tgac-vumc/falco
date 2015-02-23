@@ -50,11 +50,6 @@ if ($samtools !~ /samtools$/) {
 	exit 1;
 }
 
-# perl perAmpliconAnalysis
-# R addQual.R
-# perl qcFilt
-# perl qc2vcf
-
 print STDOUT localtime() . " [$$] $perAmpliconAnalysis $bam $ref $manifest $base $samtools\n";
 system("$perAmpliconAnalysis $bam $ref $manifest $base $samtools");
 
