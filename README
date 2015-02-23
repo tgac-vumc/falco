@@ -3,7 +3,6 @@ Usage:
 falco 
 
 input:
-
 - bam file
 - manifest file
 - ref + fai
@@ -11,7 +10,6 @@ input:
 - manifest
 
 output:
-
 - *.vcf file
 - *.qc.ann.txt -> catalog of each assayed bp
 - *.qc2.ann.txt -> catalog of transitions
@@ -19,6 +17,17 @@ output:
 
 example:
 
-falco --bam input.bam --output outputBase --ref [hg19.fa]
+OUTBASE="HCT116-TEST"
+
+## variant calling
+falco --bam data/HCT-116/HCT116.bam --output $OUTBASE --ref genome.fa
+
+file1=$OUTBASE".qc.ann.qual.txt"
+file2=$OUTBASE".qc2.ann.txt"
+file3=$OUTBASE".qc.targets.txt"
+file4=$OUTBASE".res.filtered.tsv"
+
+## variant filtering and reporting
+falco-filter-report --vcf snpeff.vcf --output $OUTBASE --qc_ann_qual_txt $file1 --qc2_ann_txt $file2 --qc_targets_txt $file3 --res_filtered_tsv $file4
 
 
