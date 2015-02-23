@@ -80,14 +80,16 @@ while (<F>) {
 	my $trans = $row[$col{Transcript_ID}];
 	$trans =~ s/\..*$//;
 	
-	if (not exists($nm{$trans})) {
-		print STDERR "Unknown transcript: $row[$col{Gene_Name}] $trans\n";
-		next;
-	}
-	elsif ($nm{$trans} != 0) {
-		print STDERR "Non cannonical: $row[$col{Gene_Name}] $trans\n";
-		next;
-	}
+	## impossible to switch off these two transcript filters
+	## so commented out for now
+	# if (not exists($nm{$trans})) {
+	# 	print STDERR "Unknown transcript: $row[$col{Gene_Name}] $trans\n";
+	# 	next;
+	# }
+	# elsif ($nm{$trans} != 0) {
+	# 	print STDERR "Non cannonical: $row[$col{Gene_Name}] $trans\n";
+	# 	next;
+	# }
 
 	# Annotate clinincal variants and cosmic mutations
 
